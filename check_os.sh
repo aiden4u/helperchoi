@@ -1,10 +1,11 @@
 #!/bin/bash
 #Script made by helperchoi@gmail.com
+#DESCRIPTION="Linux OS Check Script"
 
 export LANG=C
 export LC_ALL=C
 
-SCRIPT_VERSION=1.0.20220525
+SCRIPT_VERSION=1.1.20220607
 WARNING_DAYS=10
 FS_LIMIT=85
 CPU_LIMIT=60
@@ -24,7 +25,7 @@ then
 	if [ ${CHECK_UTIL1} -ne 0 ]
 	then
 		echo "[INFO] Needs to be Installed : ip tool"
-		#yum -y install iproute
+		yum -y install iproute
 		echo
 	fi
 
@@ -33,7 +34,7 @@ then
 	if [ ${CHECK_UTIL2} -ne 0 ]
 	then
 		echo "[INFO] Needs to be Installed : multipath tool"
-		#yum -y install device-mapper-multipath
+		yum -y install device-mapper-multipath
 		echo
 	fi
 
@@ -42,7 +43,7 @@ then
 	if [ ${CHECK_UTIL3} -ne 0 ]
 	then
 		echo "[INFO] Needs to be Installed : dstat tool"
-		#yum -y install dstat
+		yum -y install dstat
 		echo
 	fi
 else
@@ -251,7 +252,7 @@ fi;
 
 READ_ONLY_CHECK=0
 
-for LIST in `df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$|.snapshot'`; 
+for LIST in `df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$'`; 
 do
 	CHECK=`touch ${LIST}/file_test 2>&1 | wc -l`; 
 	
@@ -274,7 +275,7 @@ fi;
 #################################
 
 CHECK_FS_USAGE_STATUS=0
-FILESYS_LIST=`df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$|/backup/'`
+FILESYS_LIST=`df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$'`
 
 for LIST in ${FILESYS_LIST}
 do
@@ -489,6 +490,6 @@ done
 ### 14. Disk IO Status ###
 ##################################################################
 
-#dstat --time -l --disk-util -r --top-io --top-cputime --nfs3 1 5
+dstat --time -l --disk-util -r --top-io --top-cputime --nfs3 1 5
 echo
 
