@@ -9,58 +9,59 @@ SCRIPT_VERSION=1.1.20220607
 WARNING_DAYS=10
 FS_LIMIT=85
 CPU_LIMIT=60
-MEM_LIMIT=90
+MEM_LIMIT=95
 INODE_LIMIT=85
 SYS_LOG=/var/log/messages
 LOG_DATE=`date '+%b %d %H:%M:%S'`
 
 source /root/.bashrc
 
-CHECK_USER=`id | awk '{print $1}' | cut -d "(" -f1 | cut -d "=" -f2`
+### User & Dependency Package Check ###
 
-if [ ${CHECK_USER} -eq 0 ]
-then
-	CHECK_UTIL1=`which ip 2>&1 | grep ":" | wc -l`
+FUNCT_CHECK_USER() {
 
-	if [ ${CHECK_UTIL1} -ne 0 ]
+	CHECK_USER=`id | awk '{print $1}' | cut -d "(" -f1 | cut -d "=" -f2`
+
+	if [ ${CHECK_USER} -eq 0 ]
 	then
-		echo "[INFO] Needs to be Installed : ip tool"
-		yum -y install iproute
+		CHECK_UTIL1=`which ip 2>&1 | grep ":" | wc -l`
+
+		if [ ${CHECK_UTIL1} -ne 0 ]
+		then
+			echo "[INFO] Needs to be Installed : ip tool"
+			#yum -y install iproute
+			echo
+		fi
+
+		CHECK_UTIL2=`which multipath 2>&1 | grep ":" | wc -l`
+
+		if [ ${CHECK_UTIL2} -ne 0 ]
+		then
+			echo "[INFO] Needs to be Installed : multipath tool"
+			#yum -y install device-mapper-multipath
+			echo
+		fi
+
+		CHECK_UTIL3=`which dstat 2>&1 | grep ":" | wc -l`
+
+		if [ ${CHECK_UTIL3} -ne 0 ]
+		then
+			echo "[INFO] Needs to be Installed : dstat tool"
+			#yum -y install dstat
+			echo
+		fi
+	else
 		echo
+		echo "[INFO] You are not Root User, so Can not Execute some Command."
 	fi
+}
 
-	CHECK_UTIL2=`which multipath 2>&1 | grep ":" | wc -l`
-
-	if [ ${CHECK_UTIL2} -ne 0 ]
-	then
-		echo "[INFO] Needs to be Installed : multipath tool"
-		yum -y install device-mapper-multipath
-		echo
-	fi
-
-	CHECK_UTIL3=`which dstat 2>&1 | grep ":" | wc -l`
-
-	if [ ${CHECK_UTIL3} -ne 0 ]
-	then
-		echo "[INFO] Needs to be Installed : dstat tool"
-		yum -y install dstat
-		echo
-	fi
-else
-	echo
-	echo "[INFO] You are not Root User, so Can not Execute some Command."
-fi
-
-echo
-echo "[ OS Check Result ]"
-echo "[ Script Version ] : ${SCRIPT_VERSION}"
-
-CHECK_PLATFORM=`dmidecode -t system | grep -i product | cut -d : -f 2 | sed 's#^ *##g'`
-echo "[ Platform ] : ${CHECK_PLATFORM}"
+FUNCT_CHECK_OS_VERSION() {
 
 #################################
 ### 1. Check Linux OS Version ###
 #################################
+
 
 CHECK_OS=`uname -a | cut -d "/" -f 2 | tr '[A-Z]' '[a-z]'`
 
@@ -94,6 +95,10 @@ fi
 
 echo "[ Hostname ] : $HOSTNAME / ${OS_VERSION} / `uname -r`"
 
+}
+
+
+FUNCT_CHECK_SYS_RESOURCE() {
 
 ####################################
 ### 2. Check System Resouce Info ###
@@ -159,10 +164,14 @@ else
         echo "[ OK ] System Resouce OK. [ CPU ] : ${CPU_USAGE} % [ MEM ] : ${MEM_USIZE} % [ System Load ] : ${LOAD_AVERAGE} (${CPU_CORE} Core System)"
 fi
 
+}
 
-#################################
-#### 3. Check Password Exprie ###
-#################################
+
+FUNCT_CHECK_PW_EXPRIE() {
+
+################################
+### 3. Check Password Exprie ###
+################################
 
 PW_EXPIRES_CHECK=0
 
@@ -214,6 +223,10 @@ then
 	echo "[ OK ] All Account Password Not Expires."
 fi
 
+}
+
+
+FUNCT_CHECK_NFS_MOUNT() {
 
 ##########################
 ### 4. Check NFS Mount ###
@@ -245,6 +258,10 @@ then
 	echo "[ OK ] NAS or NFS Mount is OK."
 fi;
 
+}
+
+
+FUNCT_CHECK_FS_READ_ONLY() {
 
 #####################################
 ### 5. Check Filesystem Read-Only ###
@@ -252,7 +269,7 @@ fi;
 
 READ_ONLY_CHECK=0
 
-for LIST in `df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$'`; 
+for LIST in `df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$|.snapshot'`; 
 do
 	CHECK=`touch ${LIST}/file_test 2>&1 | wc -l`; 
 	
@@ -269,13 +286,17 @@ then
 	echo "[ OK ] All Filesystem Not Read-only."
 fi;
 
+}
+
+
+FUNCT_CHECK_FS_USAGE() {
 
 #################################
 ### 6. Check Filesystem Usage ###
 #################################
 
 CHECK_FS_USAGE_STATUS=0
-FILESYS_LIST=`df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$'`
+FILESYS_LIST=`df -hP | egrep -v "^tmpfs|^/dev/loop*" | awk '{print $NF}' | egrep -v '^/dev|on$|/backup/'`
 
 for LIST in ${FILESYS_LIST}
 do
@@ -294,6 +315,10 @@ then
 	echo "[ OK ] Filesystem Usage is OK."
 fi
 
+}
+
+
+FUNCT_CHECK_INODE_USAGE() {
 
 #######################################
 ### 7. Check inode Usage ###
@@ -318,6 +343,11 @@ if [ ${CHECK_INODE_USAGE_STATUS} -eq 0 ]
 then
 	echo "[ OK ] Inode Usage is OK."
 fi
+
+}
+
+
+FUNCT_CHECK_FS_MOUNT_STAT() {
 
 #############################
 ### 8. Check Mount Status ###
@@ -357,6 +387,10 @@ then
         echo "[ OK ] Filesystem Mount Status OK."
 fi
 
+}
+
+
+FUNCT_CHECK_LVM_STAT() {
 
 ###########################
 ### 9. Check LVM Status ###
@@ -393,6 +427,11 @@ then
 	echo "[ OK ] LVM Status OK."
 fi
 
+}
+
+
+FUNCT_CHECK_MULTIPATH_STAT() {
+
 ##################################################################
 ### 10. Check Native Multipathd Status ###
 ##################################################################
@@ -414,6 +453,10 @@ else
 	fi
 fi
 
+}
+
+
+FUNCT_CHECK_USED_ETH() {
 
 ##################################################################
 ### 11. Check Used Network Interface ###
@@ -437,6 +480,11 @@ if [ ${ETH_STAT_CODE} ]
 then
 	echo "[ OK ] Used Ethernet All OK"
 fi
+
+}
+
+
+FUNCT_CHECK_BOND_ETH() {
 
 ##################################################################
 ### 12. Check Bonding Network Interface ###
@@ -470,6 +518,10 @@ else
 	echo "[ OK ] Network Bonding Not Used."
 fi
 
+}
+
+
+FUNCT_CHECK_ALL_ETH() {
 
 ##################################################################
 ### 13. Check All Network Interface Link & Packet Error Status ###
@@ -485,6 +537,10 @@ do
 	echo "${LIST} : `ethtool ${LIST} | egrep -i 'speed|link detected'`" && echo
 done
 
+}
+
+
+FUNCT_CHECK_DISK_IO() {
 
 ##################################################################
 ### 14. Disk IO Status ###
@@ -493,3 +549,31 @@ done
 dstat --time -l --disk-util -r --top-io --top-cputime --nfs3 1 5
 echo
 
+}
+
+
+### FUNCTION CALL ###
+
+FUNCT_CHECK_USER
+
+	echo
+	echo "[ OS Check Result ]"
+	echo "[ Script Version ] : ${SCRIPT_VERSION}"
+
+	CHECK_PLATFORM=`dmidecode -t system | grep -i product | cut -d : -f 2 | sed 's#^ *##g'`
+	echo "[ Platform ] : ${CHECK_PLATFORM}"
+
+FUNCT_CHECK_OS_VERSION
+FUNCT_CHECK_SYS_RESOURCE
+FUNCT_CHECK_PW_EXPRIE
+FUNCT_CHECK_NFS_MOUNT
+FUNCT_CHECK_FS_READ_ONLY
+FUNCT_CHECK_FS_USAGE
+FUNCT_CHECK_INODE_USAGE
+FUNCT_CHECK_FS_MOUNT_STAT
+FUNCT_CHECK_LVM_STAT
+FUNCT_CHECK_MULTIPATH_STAT
+FUNCT_CHECK_USED_ETH
+FUNCT_CHECK_BOND_ETH
+FUNCT_CHECK_ALL_ETH
+FUNCT_CHECK_DISK_IO
