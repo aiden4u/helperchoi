@@ -1,6 +1,6 @@
 #!/bin/bash
 #Script made by helperchoi@gmail.com
-SCRIPT_VERSION=0.5.20220526
+SCRIPT_VERSION=0.6.20220610
 
 export LANG=C
 export LC_ALL=C
