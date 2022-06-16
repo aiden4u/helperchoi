@@ -13,7 +13,7 @@ SWAP_TOTAL=0
 for LIST in `cat ${RAWDATA} | cut -d "/" -f 3 | sort -u`
 do
 	MEMSUM=0
-	for SWAP_LIST in `cat ./${RAWDATA} | awk '$1 ~ /^\/proc\/'"${LIST}"'\// {print $2}'`
+	for SWAP_LIST in `cat ${RAWDATA} | awk '$1 ~ /^\/proc\/'"${LIST}"'\// {print $2}'`
 	do
 		MEMSUM=`expr ${MEMSUM} + ${SWAP_LIST}`
 	done
@@ -22,9 +22,9 @@ do
 	PROC_PATH=`ls -l /proc/${LIST}/exe | awk '{print $NF}'`
  
 	echo -e "PID ${LIST} / User : ${PROC_USER} / Swap use Total : ${MEMSUM} KByte / Path : ${PROC_PATH}" 
-	SWAP_TOTAL=`echo "${SWAP_TOTAL} + ${MEMSUM}" | bc`
+	export SWAP_TOTAL=`echo "${SWAP_TOTAL} + ${MEMSUM}" | bc`
 done
  
 echo 
 echo "Total Swap Size - ${SWAP_TOTAL} KByte"
-echo "RAW Data is - `pwd`/${RAWDATA}"
+echo "RAW Data is - ${RAWDATA}"
